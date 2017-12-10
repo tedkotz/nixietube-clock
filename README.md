@@ -20,9 +20,17 @@ I've used the mpd integration with mopidy, but it should work with any mpd serve
     - python-mpd (if mpd integration desired)
     - RPi.GPIO 
 2. Customize configuration
+    - $EDITOR nixietube-clock.py
+    - $EDITOR nixietube-clock.service
 3. Copy script to install path
+    - sudo cp nixietube-clock.py /usr/local/bin/
+    - sudo chmod a+x /usr/local/bin/nixietube-clock.py
 4. Copy systemd service file into system config
+    - sudo cp nixietube-clock.service /etc/systemd/system/multi-user.target.wants
 5. Have systemd load and start service
+    - sudo systemctl daemon-reload
+    - sudo systemctl start nixietube-clock.service
+
 
 ## ToDo
 - Add requirements.txt file [https://pip.readthedocs.io/en/1.1/requirements.html]

@@ -4,7 +4,7 @@ After=mopidy.service mpd.service network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python /usr/local/bin/nixie-clock.py
+ExecStart=/usr/bin/python /usr/local/bin/nixietube-clock.py
 RestartSec=5s
 User=pi
 Nice=10

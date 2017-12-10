@@ -50,33 +50,48 @@ def nixieString(digitString):
 	#print 'Outputted to Nixies'
 	
 
-#Ask User for string to display
-def userNixieString():
-	userInput = str(raw_input('Number to Display ( or "exit" ) : '))
-	if userInput == 'exit':
-		return False
-	print tubes
-	nixienumber = userInput.rjust(tubes,'a')
-	print nixienumber
-	nixieString(nixienumber)
-	return True
+# Displays a string to report the time or date
+def dateTimeString():
+#	nixieString( datetime.now().strftime(" %H%M ") )
+	TIME_DATE_MAX_OFFSET = len(" HHMMSS CCYY MM DD      ") - 6
+	timeStamp = datetime.now(TZ)
+	if dateTimeString.offset > 0 and dateTimeString.offset <= TIME_DATE_MAX_OFFSET:
+		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
+		if dateTimeString.frame > 15:
+			dateTimeString.offset += dateTimeString.direction
+			dateTimeString.frame = 0
+	elif timeStamp.second == 13:
+		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
+		dateTimeString.offset=1
+		dateTimeString.frame = 0
+	elif timeStamp.microsecond < 500000:
+#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
+		x = timeStamp.strftime("%H%M%S") 
+		dateTimeString.offset=0
+	else:
+		x = timeStamp.strftime("%H%M  ") 
+		dateTimeString.offset=0
+#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
+#	if dateTimeString.offset > (len(x) - 9):
+#		dateTimeString.offset=(len(x) - 9)
+#		dateTimeString.direction=-1
+#		dateTimeString.frame = -12
+#	elif dateTimeString.offset < 0:
+#		dateTimeString.offset=0
+#		dateTimeString.direction=1
+#		dateTimeString.frame = -6
+#	#dateTimeString.offset=(len(x) - 9)
+#	dateTimeString.offset=0
+	nixieString( x[dateTimeString.offset:dateTimeString.offset+6] )
+	sleep(FRAME_TIME)
+	dateTimeString.frame += 10
+	return True;
 
-#Sweep Counting nixie display
-def sweepNixieString():
-	for digit in '1234567890':
-		for i in range (0,tubes):
-			x=emptyString[:i] + digit + emptyString[i:]
-			#print x
-			nixieString(x)
-			sleep(0.1)
-		for i in range (tubes-2, 0, -1):
-			x=emptyString[:i] + digit + emptyString[i:]
-			#print x
-			nixieString(x)
-			sleep(0.1)
-	return True
+dateTimeString.offset = 0
+dateTimeString.direction = 1
+dateTimeString.frame = 0
 
-
+# Displays MPD service status or dateTimeString
 def mpcString(client):
 	if(client):
 		if (mpcString.mpcHoldoff > 0):
@@ -123,48 +138,7 @@ def mpcString(client):
 mpcString.oldVolume = 0
 mpcString.volumeDisplayTimer = 0
 mpcString.mpcHoldoff = 1
-
 		
-
-def dateTimeString():
-#	nixieString( datetime.now().strftime(" %H%M ") )
-	TIME_DATE_MAX_OFFSET = len(" HHMMSS CCYY MM DD      ") - 6
-	timeStamp = datetime.now(TZ)
-	if dateTimeString.offset > 0 and dateTimeString.offset <= TIME_DATE_MAX_OFFSET:
-		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
-		if dateTimeString.frame > 15:
-			dateTimeString.offset += dateTimeString.direction
-			dateTimeString.frame = 0
-	elif timeStamp.second == 13:
-		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
-		dateTimeString.offset=1
-		dateTimeString.frame = 0
-	elif timeStamp.microsecond < 500000:
-#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
-		x = timeStamp.strftime("%H%M%S") 
-		dateTimeString.offset=0
-	else:
-		x = timeStamp.strftime("%H%M  ") 
-		dateTimeString.offset=0
-#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
-#	if dateTimeString.offset > (len(x) - 9):
-#		dateTimeString.offset=(len(x) - 9)
-#		dateTimeString.direction=-1
-#		dateTimeString.frame = -12
-#	elif dateTimeString.offset < 0:
-#		dateTimeString.offset=0
-#		dateTimeString.direction=1
-#		dateTimeString.frame = -6
-#	#dateTimeString.offset=(len(x) - 9)
-#	dateTimeString.offset=0
-	nixieString( x[dateTimeString.offset:dateTimeString.offset+6] )
-	sleep(FRAME_TIME)
-	dateTimeString.frame += 10
-	return True;
-
-dateTimeString.offset = 0
-dateTimeString.direction = 1
-dateTimeString.frame = 0
 
 #init the GPIO pins
 GPIO.setwarnings(False)
@@ -189,10 +163,8 @@ try:
 		mpdClient.timeout = FRAME_TIME
 		#mpdClient.connect(MPD_HOST, MPD_PORT)
 	while keepLooping:
-		#keepLooping=sweepNixieString()
 		#keepLooping=dateTimeString()
 		keepLooping=mpcString(mpdClient)
-		#keepLooping=userNixieString()
 except KeyboardInterrupt:
 	# Do normal cleanup
 	print "Exception detected"
