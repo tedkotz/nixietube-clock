@@ -29,6 +29,7 @@ TZ = timezone('US/Eastern')
 MPD_HOST = "localhost"
 MPD_PORT = "6600"
 
+# Updates display at most 10fps
 FRAME_TIME = 0.1
 
 
@@ -58,7 +59,8 @@ def nixieString(digitString):
 	pulseGPIO(gpioParallelLoad)
 	#print 'Outputted to Nixies'
 
-#init the GPIO pins
+
+#Init the GPIO pins
 def nixieInit():
 	GPIO.setwarnings(False)
 	GPIO.setmode(GPIO.BOARD)
@@ -69,7 +71,6 @@ def nixieInit():
 	GPIO.output(gpioParallelLoad, False)
 	GPIO.output(gpioSerialClock, False)
 	GPIO.output(gpioData, False)
-
 
 
 # Displays a string to report the time or date
@@ -112,6 +113,7 @@ def dateTimeString():
 dateTimeString.offset = 0
 dateTimeString.direction = 1
 dateTimeString.frame = 0
+
 
 # Displays MPD service status or dateTimeString
 def mpcString(client):
@@ -187,6 +189,3 @@ if __name__=="__main__":
 		mpdClient.close()
 		mpdClient.disconnect()
 	GPIO.cleanup()
-
-
-	
