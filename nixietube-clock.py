@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-#import modules
 import socket
 from time import sleep
 import RPi.GPIO as GPIO
@@ -17,9 +16,19 @@ except ImportError:
 
 #Number of active Nixie Tubes
 tubes = 6
+
+# GPIO mapping
+gpioData = 11
+gpioSerialClock = 12
+gpioParallelLoad = 8
+
+# Clock settings
 TZ = timezone('US/Eastern')
+
+# MPD Server settings
 MPD_HOST = "localhost"
 MPD_PORT = "6600"
+
 FRAME_TIME = 0.1
 
 
@@ -31,24 +40,37 @@ def pulseGPIO(pin, direction=True, duration=0.001):
 
 
 #Display digits on Nixies, bit by bit
-def nixiebit(digit):
+def nixieDigit(digit):
 	digit = int(max(0, min( int(digit), 15)))
 	for d in reversed(range (0, 4)):
-		GPIO.output(11, bool(digit & (1 << d)) )
-		pulseGPIO(12)
+		GPIO.output(gpioData, bool(digit & (1 << d)) )
+		pulseGPIO(gpioSerialClock)
 
 
 #Display String of digits
 def nixieString(digitString):
 	for c in reversed(str(digitString)):
 		try:
-			nixiebit(int(c))
+			nixieDigit(int(c))
 		except ValueError:
-			nixiebit(15)
+			nixieDigit(15)
 	#Display number on Nixies
-	pulseGPIO(8)
+	pulseGPIO(gpioParallelLoad)
 	#print 'Outputted to Nixies'
-	
+
+#init the GPIO pins
+def nixieInit():
+	GPIO.setwarnings(False)
+	GPIO.setmode(GPIO.BOARD)
+	GPIO.setup(gpioParallelLoad, GPIO.OUT)
+	GPIO.setup(gpioSerialClock, GPIO.OUT)
+	GPIO.setup(gpioData, GPIO.OUT)
+
+	GPIO.output(gpioParallelLoad, False)
+	GPIO.output(gpioSerialClock, False)
+	GPIO.output(gpioData, False)
+
+
 
 # Displays a string to report the time or date
 def dateTimeString():
@@ -135,48 +157,36 @@ def mpcString(client):
 			except (socket.error, ConnectionError):
 				print "Cleanup-ConnectionError"
 	return dateTimeString()
+
 mpcString.oldVolume = 0
 mpcString.volumeDisplayTimer = 0
 mpcString.mpcHoldoff = 1
 		
 
-#init the GPIO pins
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(8, GPIO.OUT)
-GPIO.setup(11, GPIO.OUT)
-GPIO.setup(12, GPIO.OUT)
+if __name__=="__main__":
+	nixieInit()
 
-GPIO.output(8, False)
-GPIO.output(11, False)
-GPIO.output(12, False)
+	emptyString='     '
+	keepLooping=True
+	print 'Hit Ctrl-C to Exit'
+	try:
+		if(mpdClient):
+			mpdClient.timeout = FRAME_TIME
+			#mpdClient.connect(MPD_HOST, MPD_PORT)
+		while keepLooping:
+			#keepLooping=dateTimeString()
+			keepLooping=mpcString(mpdClient)
+	except KeyboardInterrupt:
+		# Do normal cleanup
+		print "Exception detected"
 
-
-#I just have a thing for clean screens...
-#call("clear")
-
-emptyString='     '
-keepLooping=True
-print 'Hit Ctrl-C to Exit'
-try:
+	#Cleanup...
+	nixieString('aaaaaa')
+	print "Exiting..."
 	if(mpdClient):
-		mpdClient.timeout = FRAME_TIME
-		#mpdClient.connect(MPD_HOST, MPD_PORT)
-	while keepLooping:
-		#keepLooping=dateTimeString()
-		keepLooping=mpcString(mpdClient)
-except KeyboardInterrupt:
-	# Do normal cleanup
-	print "Exception detected"
-
-#Cleanup...
-nixieString('aaaaaa')
-print "Exiting..."
-if(mpdClient):
-	mpdClient.close()
-	mpdClient.disconnect()
-GPIO.cleanup()
-#call("clear")
+		mpdClient.close()
+		mpdClient.disconnect()
+	GPIO.cleanup()
 
 
 	
