@@ -2,7 +2,6 @@
 
 import socket
 from time import sleep
-import RPi.GPIO as GPIO
 from subprocess import check_output, call, CalledProcessError
 from datetime import datetime, date
 from pytz import timezone
@@ -11,8 +10,15 @@ try:
 	from mpd import MPDClient, ConnectionError
 	mpdClient = MPDClient()
 except ImportError:
-	print 'python-mpd not installed disabling mpdsupport'
+	print 'python-mpd not installed disabling mpd support.'
 	mpdClient = None
+
+try:
+	import RPi.GPIO as GPIO
+except ImportError:
+	print 'python-rpi.gpio not installed using stdout.'
+	GPIO = None
+
 
 #Number of active Nixie Tubes
 tubes = 6
@@ -32,45 +38,56 @@ MPD_PORT = "6600"
 # Updates display at most 10fps
 FRAME_TIME = 0.1
 
-
-#Send a pulse out the indicated strobe pin
-def pulseGPIO(pin, direction=True, duration=0.001):
-	GPIO.output(pin, direction)
-	sleep(duration)
-	GPIO.output(pin, not(direction))
-
-
-#Display digits on Nixies, bit by bit
-def nixieDigit(digit):
-	digit = int(max(0, min( int(digit), 15)))
-	for d in reversed(range (0, 4)):
-		GPIO.output(gpioData, bool(digit & (1 << d)) )
-		pulseGPIO(gpioSerialClock)
+if (GPIO):
+	#Send a pulse out the indicated strobe pin
+	def pulseGPIO(pin, direction=True, duration=0.001):
+		GPIO.output(pin, direction)
+		sleep(duration)
+		GPIO.output(pin, not(direction))
 
 
-#Display String of digits
-def nixieString(digitString):
-	for c in reversed(str(digitString)):
-		try:
-			nixieDigit(int(c))
-		except ValueError:
-			nixieDigit(15)
-	#Display number on Nixies
-	pulseGPIO(gpioParallelLoad)
-	#print 'Outputted to Nixies'
+	#Display digits on Nixies, bit by bit
+	def nixieDigit(digit):
+		digit = int(max(0, min( int(digit), 15)))
+		for d in reversed(range (0, 4)):
+			GPIO.output(gpioData, bool(digit & (1 << d)) )
+			pulseGPIO(gpioSerialClock)
 
 
-#Init the GPIO pins
-def nixieInit():
-	GPIO.setwarnings(False)
-	GPIO.setmode(GPIO.BOARD)
-	GPIO.setup(gpioParallelLoad, GPIO.OUT)
-	GPIO.setup(gpioSerialClock, GPIO.OUT)
-	GPIO.setup(gpioData, GPIO.OUT)
+	#Display String of digits
+	def nixieString(digitString):
+		for c in reversed(str(digitString)):
+			try:
+				nixieDigit(int(c))
+			except ValueError:
+				nixieDigit(15)
+		#Display number on Nixies
+		pulseGPIO(gpioParallelLoad)
+		#print 'Outputted to Nixies'
 
-	GPIO.output(gpioParallelLoad, False)
-	GPIO.output(gpioSerialClock, False)
-	GPIO.output(gpioData, False)
+
+	#Init the GPIO pins
+	def nixieInit():
+		GPIO.setwarnings(False)
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(gpioParallelLoad, GPIO.OUT)
+		GPIO.setup(gpioSerialClock, GPIO.OUT)
+		GPIO.setup(gpioData, GPIO.OUT)
+
+		GPIO.output(gpioParallelLoad, False)
+		GPIO.output(gpioSerialClock, False)
+		GPIO.output(gpioData, False)
+
+else:
+	import sys
+	
+	def nixieString(digitString):
+		sys.stdout.write('\b' * tubes + str(digitString)[:tubes])
+		sys.stdout.flush()
+
+
+	def nixieInit():
+		return None
 
 
 # Displays a string to report the time or date
@@ -188,4 +205,5 @@ if __name__=="__main__":
 	if(mpdClient):
 		mpdClient.close()
 		mpdClient.disconnect()
-	GPIO.cleanup()
+	if(GPIO):
+		GPIO.cleanup()
