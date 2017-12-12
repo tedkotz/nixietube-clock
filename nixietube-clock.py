@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
 import socket
-from time import sleep
+from time import sleep, time
 from subprocess import check_output, call, CalledProcessError
 from datetime import datetime, date
 from pytz import timezone
+import thread
 
 try:
 	from mpd import MPDClient, ConnectionError
@@ -32,11 +33,11 @@ gpioParallelLoad = 8
 TZ = timezone('US/Eastern')
 
 # MPD Server settings
-MPD_HOST = "localhost"
+MPD_HOST = "10.1.1.195"
 MPD_PORT = "6600"
 
 # Updates display at most 10fps
-FRAME_TIME = 0.1
+FRAME_TIME = 0.25
 
 if (GPIO):
 	#Send a pulse out the indicated strobe pin
@@ -87,72 +88,54 @@ else:
 
 
 	def nixieInit():
-		return None
+		pass
 
+
+def updateDisplay( msg, duration ):
+	#if (msg != updateDisplay.currentMsg):
+	thread.start_new_thread(nixieString, ( msg, ) )
+	sleep(duration)
+	
+#updateDisplay.currentMsg = ""
 
 # Displays a string to report the time or date
-def dateTimeString():
+def dateTimeString( intime ):
 #	nixieString( datetime.now().strftime(" %H%M ") )
-	TIME_DATE_MAX_OFFSET = len(" HHMMSS CCYY MM DD      ") - 6
-	timeStamp = datetime.now(TZ)
+	TIME_DATE_MAX_OFFSET = len(" HHMMSS CCYY MM DD      ") - tubes
+	timeStamp = datetime.fromtimestamp(intime, TZ)
 	if dateTimeString.offset > 0 and dateTimeString.offset <= TIME_DATE_MAX_OFFSET:
+		dateTimeString.offset += 1
 		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
-		if dateTimeString.frame > 15:
-			dateTimeString.offset += dateTimeString.direction
-			dateTimeString.frame = 0
+		return ((x[dateTimeString.offset:dateTimeString.offset+tubes]), intime + 0.2)
 	elif timeStamp.second == 13:
-		x = timeStamp.strftime(" %H%M%S %Y %m %d      ")
 		dateTimeString.offset=1
-		dateTimeString.frame = 0
+		return (timeStamp.strftime("%H%M%S"), intime + 0.2)
 	elif timeStamp.microsecond < 500000:
-#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
-		x = timeStamp.strftime("%H%M%S") 
-		dateTimeString.offset=0
+		return (timeStamp.strftime("%H%M%S"), int(intime)+0.5 )
 	else:
-		x = timeStamp.strftime("%H%M  ") 
-		dateTimeString.offset=0
-#		x = timeStamp.strftime("%Y%m%d %H%M%S%f") 
-#	if dateTimeString.offset > (len(x) - 9):
-#		dateTimeString.offset=(len(x) - 9)
-#		dateTimeString.direction=-1
-#		dateTimeString.frame = -12
-#	elif dateTimeString.offset < 0:
-#		dateTimeString.offset=0
-#		dateTimeString.direction=1
-#		dateTimeString.frame = -6
-#	#dateTimeString.offset=(len(x) - 9)
-#	dateTimeString.offset=0
-	nixieString( x[dateTimeString.offset:dateTimeString.offset+6] )
-	sleep(FRAME_TIME)
-	dateTimeString.frame += 10
-	return True;
+		return (timeStamp.strftime("%H%M  "), int(intime + 1) )
 
 dateTimeString.offset = 0
-dateTimeString.direction = 1
-dateTimeString.frame = 0
 
 
 # Displays MPD service status or dateTimeString
-def mpcString(client):
+def mpcString(client, intime):
 	if(client):
-		if (mpcString.mpcHoldoff > 0):
-			mpcString.mpcHoldoff -= 1
-			if (mpcString.mpcHoldoff <= 0):
-				try:
-					client.connect(MPD_HOST, MPD_PORT)
-				except socket.error:
-					print "Failed to reconnect MPD client"
-			return dateTimeString()
+		if ( (mpcString.mpcHoldoff != 0) and (mpcString.mpcHoldoff <= intime) ):
+			mpcString.mpcHoldoff = 0
+			try:
+				client.connect(MPD_HOST, MPD_PORT)
+			except socket.error:
+				print "Failed to reconnect MPD client"
+			return dateTimeString(intime)
 		try:
 			status=client.status()
 			if(mpcString.oldVolume!=status['volume']):
-				mpcString.volumeDisplayTimer = 10
+				mpcString.volumeDisplayTimer = 1 / FRAME_TIME
 				mpcString.oldVolume = status['volume']
 			if(mpcString.volumeDisplayTimer > 0):
 				mpcString.volumeDisplayTimer -= 1
-				nixieString("  "+status['volume'].rjust(2,"0")+"  ")
-				sleep(FRAME_TIME)
-				return True			
+				return ("  "+status['volume'].rjust(2,"0")+"  ", intime+FRAME_TIME);
 			#print status
 			if(status['state']=="play"):
 				#volume = status['volume']
@@ -163,19 +146,17 @@ def mpcString(client):
 				#totTime = time(second=int(timeFields[1]))
 				digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
 				#print digitString
-				nixieString(digitString)
-				sleep(FRAME_TIME)
-				return True
-		except (socket.error, ConnectionError):
-			print "ConnectionError"
-			mpcString.mpcHoldoff = 300
+				return(digitString, intime + 1)
+		except (socket.error, ConnectionError) as e:
+			print "ConnectionError:", str(e)
+			mpcString.mpcHoldoff = intime + 30
 			try:
 				client.disconnect()
 #				client.timeout = FRAME_TIME
 #				client.connect(MPD_HOST, MPD_PORT)
 			except (socket.error, ConnectionError):
 				print "Cleanup-ConnectionError"
-	return dateTimeString()
+	return dateTimeString(intime)
 
 mpcString.oldVolume = 0
 mpcString.volumeDisplayTimer = 0
@@ -187,14 +168,19 @@ if __name__=="__main__":
 
 	emptyString='     '
 	keepLooping=True
+	currentMsg = ""
 	print 'Hit Ctrl-C to Exit'
 	try:
 		if(mpdClient):
-			mpdClient.timeout = FRAME_TIME
+			mpdClient.timeout = 1
 			#mpdClient.connect(MPD_HOST, MPD_PORT)
 		while keepLooping:
-			#keepLooping=dateTimeString()
-			keepLooping=mpcString(mpdClient)
+			msg, expiration = mpcString(mpdClient, time())
+			#msg, expiration = dateTimeString(time())
+			if (msg != currentMsg):
+				thread.start_new_thread(nixieString, ( msg, ) )
+			sleep(min(1,max(0.001, expiration-time())))
+
 	except KeyboardInterrupt:
 		# Do normal cleanup
 		print "Exception detected"
