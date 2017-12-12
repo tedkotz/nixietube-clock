@@ -181,7 +181,7 @@ if __name__=="__main__":
 				thread.start_new_thread(nixieString, ( msg, ) )
 			sleep(min(1,max(0.001, expiration-time())))
 
-	except KeyboardInterrupt:
+	except:
 		# Do normal cleanup
 		print "Exception detected"
 
