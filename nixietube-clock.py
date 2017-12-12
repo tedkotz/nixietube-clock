@@ -91,14 +91,7 @@ else:
 		pass
 
 
-def updateDisplay( msg, duration ):
-	#if (msg != updateDisplay.currentMsg):
-	thread.start_new_thread(nixieString, ( msg, ) )
-	sleep(duration)
-	
-#updateDisplay.currentMsg = ""
-
-# Displays a string to report the time or date
+# returns a string to report the time or date and an expiration time stamp
 def dateTimeString( intime ):
 #	nixieString( datetime.now().strftime(" %H%M ") )
 	TIME_DATE_MAX_OFFSET = len(" HHMMSS CCYY MM DD      ") - tubes
@@ -118,7 +111,7 @@ def dateTimeString( intime ):
 dateTimeString.offset = 0
 
 
-# Displays MPD service status or dateTimeString
+# returns MPD service status string and an expiration time stamp or dateTimeString 
 def mpcString(client, intime):
 	if(client):
 		if (mpcString.mpcHoldoff == 0):
@@ -161,18 +154,19 @@ def mpcString(client, intime):
 mpcString.oldVolume = 0
 mpcString.volumeDisplayTimer = 0
 mpcString.mpcHoldoff = 1
-		
+
 
 if __name__=="__main__":
-	nixieInit()
 
 	emptyString='     '
 	keepLooping=True
 	currentMsg = ""
 	print 'Hit Ctrl-C to Exit'
 	try:
+		nixieInit()
 		if(mpdClient):
 			mpdClient.timeout = 1
+			#mpdClient.nixieClockConnected = False
 			#mpdClient.connect(MPD_HOST, MPD_PORT)
 		while keepLooping:
 			msg, expiration = mpcString(mpdClient, time())
@@ -186,10 +180,20 @@ if __name__=="__main__":
 		print "Exception detected"
 
 	#Cleanup...
-	nixieString('aaaaaa')
 	print "Exiting..."
+	try:
+		nixieString('aaaaaa')
+	except:
+		pass
 	if(mpdClient):
-		mpdClient.close()
-		mpdClient.disconnect()
+		try:
+			mpdClient.close()
+			mpdClient.disconnect()
+		except:
+			pass
 	if(GPIO):
-		GPIO.cleanup()
+		try:
+			GPIO.cleanup()
+		except:
+			pass
+	print "Done."
