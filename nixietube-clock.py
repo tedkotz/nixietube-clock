@@ -121,41 +121,41 @@ dateTimeString.offset = 0
 # Displays MPD service status or dateTimeString
 def mpcString(client, intime):
 	if(client):
-		if ( (mpcString.mpcHoldoff != 0) and (mpcString.mpcHoldoff <= intime) ):
+		if (mpcString.mpcHoldoff == 0):
+			try:
+				status=client.status()
+				if(mpcString.oldVolume!=status['volume']):
+					mpcString.volumeDisplayTimer = 1 / FRAME_TIME
+					mpcString.oldVolume = status['volume']
+				if(mpcString.volumeDisplayTimer > 0):
+					mpcString.volumeDisplayTimer -= 1
+					return ("  "+status['volume'].rjust(2,"0")+"  ", intime+FRAME_TIME);
+				#print status
+				if(status['state']=="play"):
+					#volume = status['volume']
+					songid = status['songid']
+					timeFields = status['time'].split(":")
+					#elTime = int(timeFields[0])
+					elMin, elSec = divmod(int(timeFields[0]), 60)
+					#totTime = time(second=int(timeFields[1]))
+					digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
+					#print digitString
+					return(digitString, intime + 1)
+			except (socket.error, ConnectionError) as e:
+				print "ConnectionError:", str(e)
+				mpcString.mpcHoldoff = intime + 30
+				try:
+					client.disconnect()
+					#client.connect(MPD_HOST, MPD_PORT)
+				except (socket.error, ConnectionError) as e:
+					print "Cleanup-ConnectionError:", str(e)
+		elif (mpcString.mpcHoldoff <= intime):
 			mpcString.mpcHoldoff = 0
 			try:
 				client.connect(MPD_HOST, MPD_PORT)
-			except socket.error:
-				print "Failed to reconnect MPD client"
+			except socket.error as e:
+				print "Failed to reconnect MPD client:", str(e)
 			return dateTimeString(intime)
-		try:
-			status=client.status()
-			if(mpcString.oldVolume!=status['volume']):
-				mpcString.volumeDisplayTimer = 1 / FRAME_TIME
-				mpcString.oldVolume = status['volume']
-			if(mpcString.volumeDisplayTimer > 0):
-				mpcString.volumeDisplayTimer -= 1
-				return ("  "+status['volume'].rjust(2,"0")+"  ", intime+FRAME_TIME);
-			#print status
-			if(status['state']=="play"):
-				#volume = status['volume']
-				songid = status['songid']
-				timeFields = status['time'].split(":")
-				#elTime = int(timeFields[0])
-				elMin, elSec = divmod(int(timeFields[0]), 60)
-				#totTime = time(second=int(timeFields[1]))
-				digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
-				#print digitString
-				return(digitString, intime + 1)
-		except (socket.error, ConnectionError) as e:
-			print "ConnectionError:", str(e)
-			mpcString.mpcHoldoff = intime + 30
-			try:
-				client.disconnect()
-#				client.timeout = FRAME_TIME
-#				client.connect(MPD_HOST, MPD_PORT)
-			except (socket.error, ConnectionError):
-				print "Cleanup-ConnectionError"
 	return dateTimeString(intime)
 
 mpcString.oldVolume = 0
