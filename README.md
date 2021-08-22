@@ -31,7 +31,6 @@ I've used the mpd integration with mopidy, but it should work with any mpd serve
     - sudo systemctl daemon-reload
     - sudo systemctl start nixietube-clock.service
 
-
 ## ToDo
 - Add requirements.txt file [https://pip.readthedocs.io/en/1.1/requirements.html]
 - Do not update display if nothing changed
