@@ -1,23 +1,23 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import socket
 from time import sleep, time
 from subprocess import check_output, call, CalledProcessError
 from datetime import datetime, date
 from pytz import timezone
-import thread
+import threading
 
 try:
 	from mpd import MPDClient, ConnectionError
 	mpdClient = MPDClient()
 except ImportError:
-	print 'python-mpd not installed disabling mpd support.'
+	print('python-mpd not installed disabling mpd support.')
 	mpdClient = None
 
 try:
 	import RPi.GPIO as GPIO
 except ImportError:
-	print 'python-rpi.gpio not installed using stdout.'
+	print('python-rpi.gpio not installed using stdout.')
 	GPIO = None
 
 
@@ -133,22 +133,22 @@ def mpcString(client, intime):
 					#totTime = time(second=int(timeFields[1]))
 					digitString = str(elMin).rjust(3," ") + str(elSec).rjust(2,"0") + " "
 					#digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
-					#print digitString
+					#print(digitString)
 					return(digitString, intime + 1)
 			except (socket.error, ConnectionError) as e:
-				print "ConnectionError:", str(e)
+				print("ConnectionError:"+str(e))
 				mpcString.mpcHoldoff = intime + 30
 				try:
 					client.disconnect()
 					#client.connect(MPD_HOST, MPD_PORT)
 				except (socket.error, ConnectionError) as e:
-					print "Cleanup-ConnectionError:", str(e)
+					print("Cleanup-ConnectionError:"+str(e))
 		elif (mpcString.mpcHoldoff <= intime):
 			mpcString.mpcHoldoff = 0
 			try:
 				client.connect(MPD_HOST, MPD_PORT)
 			except socket.error as e:
-				print "Failed to reconnect MPD client:", str(e)
+				print("Failed to reconnect MPD client:"+str(e))
 			return dateTimeString(intime)
 	return dateTimeString(intime)
 
@@ -162,7 +162,7 @@ if __name__=="__main__":
 	emptyString='     '
 	keepLooping=True
 	currentMsg = ""
-	print 'Hit Ctrl-C to Exit'
+	print('Hit Ctrl-C to Exit')
 	try:
 		nixieInit()
 		if(mpdClient):
@@ -173,15 +173,15 @@ if __name__=="__main__":
 			msg, expiration = mpcString(mpdClient, time())
 			#msg, expiration = dateTimeString(time())
 			if (msg != currentMsg):
-				thread.start_new_thread(nixieString, ( msg, ) )
+				threading.Thread(target=nixieString, args=( msg, ) ).start()
 			sleep(min(1,max(0.001, expiration-time())))
 
 	except:
 		# Do normal cleanup
-		print "Exception detected"
+		print("Exception detected")
 
 	#Cleanup...
-	print "Exiting..."
+	print("Exiting...")
 	try:
 		nixieString('aaaaaa')
 	except:
@@ -197,4 +197,4 @@ if __name__=="__main__":
 			GPIO.cleanup()
 		except:
 			pass
-	print "Done."
+	print("Done.")
