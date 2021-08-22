@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 import socket
 from time import sleep, time
@@ -33,7 +33,7 @@ gpioParallelLoad = 8
 TZ = timezone('US/Eastern')
 
 # MPD Server settings
-MPD_HOST = "10.1.1.195"
+MPD_HOST = "localhost"
 MPD_PORT = "6600"
 
 # Updates display at most 10fps
@@ -133,12 +133,13 @@ def mpcString(client, intime):
 				#print status
 				if(status['state']=="play"):
 					#volume = status['volume']
-					songid = status['songid']
+					#songid = status['songid']
 					timeFields = status['time'].split(":")
 					#elTime = int(timeFields[0])
 					elMin, elSec = divmod(int(timeFields[0]), 60)
 					#totTime = time(second=int(timeFields[1]))
-					digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
+					digitString = str(elMin).rjust(3," ") + str(elSec).rjust(2,"0") + " "
+					#digitString = songid.rjust(2,"0") + str(elMin).rjust(2," ") + str(elSec).rjust(2,"0")
 					#print digitString
 					return(digitString, intime + 1)
 			except (socket.error, ConnectionError) as e:
