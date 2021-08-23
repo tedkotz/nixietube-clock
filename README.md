@@ -32,14 +32,14 @@ I've used the mpd integration with mopidy, but it should work with any mpd serve
     - sudo systemctl start nixietube-clock.service
 
 ## ToDo
-- Add requirements.txt file [https://pip.readthedocs.io/en/1.1/requirements.html]
-- Do not update display if nothing changed
-- Replace regular interval sleeps with calculated sleep until next expected display update
-- Consider prebuffering display on wake-up then calculate afterward.
-- Add command line arguments to control configurable parameters i.e. mpdhostname, port
-- Add Weather reports
-- Add display to stdout, if requested or RPi.GPIO unavailable
-- Come up with better song playback display
-- When playback detected, periodically show time
-- Remove old nixietube board demo options
+- [ ] Add requirements.txt file [https://pip.readthedocs.io/en/1.1/requirements.html]
+- [ ] Do not update display if nothing changed
+- [ ] Replace regular interval sleeps with calculated sleep until next expected display update
+- [ ] Consider prebuffering display on wake-up then calculate afterward.
+- [ ] Add command line arguments to control configurable parameters i.e. mpdhostname, port
+- [ ] Add Weather reports
+- [x] Add display to stdout, if requested or RPi.GPIO unavailable
+- [ ] Come up with better song playback display
+- [ ] When playback detected, periodically show time
+- [ ] Remove old nixietube board demo options
 
