@@ -16,7 +16,7 @@ I've used the mpd integration with mopidy, but it should work with any mpd serve
 
 ## Setup
 1. Install dependencies
-    - Python
+    - Python3
     - python-mpd (if mpd integration desired)
     - RPi.GPIO 
 2. Customize configuration
@@ -30,6 +30,12 @@ I've used the mpd integration with mopidy, but it should work with any mpd serve
 5. Have systemd load and start service
     - sudo systemctl daemon-reload
     - sudo systemctl start nixietube-clock.service
+
+## Files
+|Name                    |Description                                                 |
+|------------------------|------------------------------------------------------------|
+|nixietube-clock.py      | Python program with the main clock control loop            |
+|nixietube-clock.service | Systemd service file to enable the clock to launch at boot |
 
 ## ToDo
 - [ ] Add requirements.txt file [https://pip.readthedocs.io/en/1.1/requirements.html]
